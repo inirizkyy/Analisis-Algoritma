@@ -1,0 +1,130 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <chrono>
+#include <iomanip>
+using namespace std;
+
+void bubbleSort(vector<int>& arr) {
+    for (size_t i = 0; i < arr.size() - 1; ++i)
+        for (size_t j = 0; j < arr.size() - i - 1; ++j)
+            if (arr[j] > arr[j + 1])
+                swap(arr[j], arr[j + 1]);
+}
+
+void insertionSort(vector<int>& arr) {
+    for (size_t i = 1; i < arr.size(); ++i) {
+        int key = arr[i];
+        int j = i - 1;
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
+            --j;
+        }
+        arr[j + 1] = key;
+    }
+}
+
+void selectionSort(vector<int>& arr) {
+    for (size_t i = 0; i < arr.size() - 1; ++i) {
+        size_t minIdx = i;
+        for (size_t j = i + 1; j < arr.size(); ++j)
+            if (arr[j] < arr[minIdx])
+                minIdx = j;
+        swap(arr[minIdx], arr[i]);
+    }
+}
+
+void merge(vector<int>& arr, int left, int mid, int right) {
+    vector<int> L(arr.begin() + left, arr.begin() + mid + 1);
+    vector<int> R(arr.begin() + mid + 1, arr.begin() + right + 1);
+    auto itL = L.begin(), itR = R.begin();
+    for (int k = left; k <= right; ++k) {
+        if (itR == R.end() || (itL != L.end() && *itL <= *itR))
+            arr[k] = *itL++;
+        else
+            arr[k] = *itR++;
+    }
+}
+
+void mergeSort(vector<int>& arr, int left, int right) {
+    if (left < right) {
+        int mid = left + (right - left) / 2;
+        mergeSort(arr, left, mid);
+        mergeSort(arr, mid + 1, right);
+        merge(arr, left, mid, right);
+    }
+}
+
+int partition(vector<int>& arr, int low, int high) {
+    int pivot = arr[high];
+    int i = low - 1;
+    for (int j = low; j < high; ++j)
+        if (arr[j] <= pivot)
+            swap(arr[++i], arr[j]);
+    swap(arr[i + 1], arr[high]);
+    return i + 1;
+}
+
+void quickSort(vector<int>& arr, int low, int high) {
+    if (low < high) {
+        int pi = partition(arr, low, high);
+        quickSort(arr, low, pi - 1);
+        quickSort(arr, pi + 1, high);
+    }
+}
+
+template <typename Func>
+double measureTime(Func sortFunc, vector<int> arr) {
+    auto start = chrono::high_resolution_clock::now();
+    sortFunc(arr);
+    auto end = chrono::high_resolution_clock::now();
+    return chrono::duration<double, micro>(end - start).count();
+}
+
+void generateData(int size, vector<int>& randomData, vector<int>& sortedData, vector<int>& reverseData) {
+    randomData.resize(size);
+    generate(randomData.begin(), randomData.end(), []() { return rand() % 10000; });
+    sortedData = randomData;
+    sort(sortedData.begin(), sortedData.end());
+    reverseData = sortedData;
+    reverse(reverseData.begin(), reverseData.end());
+}
+
+int main() {
+    vector<int> sizes = {10, 100, 500, 1000, 10000};
+    vector<string> algorithms = {"Bubble Sort", "Insertion Sort", "Selection Sort", "Merge Sort", "Quick Sort"};
+
+    for (int size : sizes) {
+        vector<int> randomData, sortedData, reverseData;
+        generateData(size, randomData, sortedData, reverseData);
+        
+        for (const std::string& algo : algorithms) {
+            double timeRandom, timeSorted, timeReverse;
+            if (algo == "Bubble Sort") {
+                timeRandom = measureTime(bubbleSort, randomData);
+                timeSorted = measureTime(bubbleSort, sortedData);
+                timeReverse = measureTime(bubbleSort, reverseData);
+            } else if (algo == "Insertion Sort") {
+                timeRandom = measureTime(insertionSort, randomData);
+                timeSorted = measureTime(insertionSort, sortedData);
+                timeReverse = measureTime(insertionSort, reverseData);
+            } else if (algo == "Selection Sort") {
+                timeRandom = measureTime(selectionSort, randomData);
+                timeSorted = measureTime(selectionSort, sortedData);
+                timeReverse = measureTime(selectionSort, reverseData);
+            } else if (algo == "Merge Sort") {
+                timeRandom = measureTime([&](vector<int> arr) { mergeSort(arr, 0, arr.size() - 1); }, randomData);
+                timeSorted = measureTime([&](vector<int> arr) { mergeSort(arr, 0, arr.size() - 1); }, sortedData);
+                timeReverse = measureTime([&](vector<int> arr) { mergeSort(arr, 0, arr.size() - 1); }, reverseData);
+            } else if (algo == "Quick Sort") {
+                timeRandom = measureTime([&](vector<int> arr) { quickSort(arr, 0, arr.size() - 1); }, randomData);
+                timeSorted = measureTime([&](vector<int> arr) { quickSort(arr, 0, arr.size() - 1); }, sortedData);
+                timeReverse = measureTime([&](vector<int> arr) { quickSort(arr, 0, arr.size() - 1); }, reverseData);
+            }
+            cout << setw(15) << algo << std::setw(7) << size 
+                      << setw(12) << timeRandom << setw(12) << timeSorted << setw(18) << timeReverse << '\n';
+        }
+    }
+
+    return 0;
+}
